@@ -107,21 +107,6 @@
 
   .page { max-width: 800px; margin: 0 auto; }
 
-  /* Setup banner */
-  .setup-banner {
-    background: #FFF8E6;
-    border: 1px solid #F0C040;
-    border-radius: var(--rl);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    font-size: 13px;
-    color: #5C4000;
-  }
-  .setup-banner strong { font-weight: 600; display: block; margin-bottom: 4px; font-size: 14px; }
-  .setup-banner ol { padding-left: 1.2rem; margin-top: 6px; line-height: 2; }
-  .setup-banner a { color: var(--bl); }
-  .setup-banner.hidden { display: none; }
-
   .page-header { margin-bottom: 1.5rem; }
   .page-header h1 { font-size: 22px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
   .page-header p { font-size: 14px; color: var(--t3); }
@@ -316,22 +301,6 @@
 <body>
 <div class="page">
 
-  <!-- Setup banner — hidden once Firebase is configured -->
-  <div class="setup-banner" id="setupBanner">
-    <strong>⚠️ Firebase not configured — tasks will not be saved yet</strong>
-    Find the <code>PASTE YOUR FIREBASE CONFIG HERE</code> section in this file's source
-    and replace the placeholder values with your real Firebase project config.
-    Then re-upload to SharePoint.<br><br>
-    New to Firebase?
-    <ol>
-      <li>Go to <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> and create a free project</li>
-      <li>Enable <strong>Realtime Database</strong> in test mode</li>
-      <li>Go to Project Settings → add a Web app → copy the config</li>
-      <li>Paste it into the <code>firebaseConfig</code> object below in this file</li>
-      <li>Re-upload to SharePoint — done!</li>
-    </ol>
-  </div>
-
   <div class="page-header">
     <h1>Team request tracker</h1>
     <p>Log incoming requests, assign them, and track completion status.</p>
@@ -409,8 +378,6 @@
 
   let sel = new Set(), asgn = null, filt = 'all', entries = {};
   let db, requestsRef;
-
-  const isConfigured = !firebaseConfig.apiKey.includes('PASTE');
 
   // Connection status UI
   function setConn(state, msg) {
@@ -552,28 +519,23 @@
   document.getElementById('ni').addEventListener('keydown', e => { if (e.key === 'Enter') window.logReq(); });
   document.getElementById('lb').addEventListener('click', window.logReq);
 
-  if (!isConfigured) {
-    setConn('err', 'Firebase not configured — see setup instructions above');
-  } else {
-    document.getElementById('setupBanner').classList.add('hidden');
-    try {
-      const app = initializeApp(firebaseConfig);
-      db = getDatabase(app);
-      requestsRef = ref(db, 'requests');
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    requestsRef = ref(db, 'requests');
 
-      setConn('', 'Connecting...');
+    setConn('', 'Connecting...');
 
-      onValue(requestsRef, (snapshot) => {
-        entries = snapshot.val() || {};
-        setConn('live', 'Live — updates instantly for all users');
-        render();
-      }, (error) => {
-        setConn('err', 'Database error: ' + error.message);
-      });
+    onValue(requestsRef, (snapshot) => {
+      entries = snapshot.val() || {};
+      setConn('live', 'Live — updates instantly for all users');
+      render();
+    }, (error) => {
+      setConn('err', 'Database error: ' + error.message);
+    });
 
-    } catch (e) {
-      setConn('err', 'Firebase init failed: ' + e.message);
-    }
+  } catch (e) {
+    setConn('err', 'Firebase init failed: ' + e.message);
   }
 </script>
 </body>
