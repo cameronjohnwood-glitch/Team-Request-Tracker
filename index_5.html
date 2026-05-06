@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Team Request Tracker</title>
+
+<!-- ============================================================
+  SETUP — 2 values to paste in, takes about 3 minutes
+  ============================================================
+
+  STEP 1 — Create a free JSONBin account
+  1. Go to https://jsonbin.io and click "Sign Up" (free)
+  2. After logging in, click "Create Bin" in the left sidebar
+  3. Paste this as the starting content and click Create:
+       { "entries": [] }
+  4. Copy the Bin ID from the URL bar — it looks like:
+       64f3c2a1e3a795c5baf123ab
+
+  STEP 2 — Get your API key
+  1. Click your profile icon (top right) → "API Keys"
+  2. Click "Create Access Key"
+  3. Give it any name, enable Read and Write, click Create
+  4. Copy the key — it looks like:
+       $2a$10$abc123...
+
+  STEP 3 — Paste both values below
+  Find the two lines marked PASTE below and replace the
+  placeholder text with your real Bin ID and API key.
+
+  STEP 4 — Upload index.html to your GitHub repo
+  Your tracker is live at:
+  https://yourusername.github.io/team-request-tracker
+  ============================================================ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg1: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeede9;
+    --t1: #1a1a18;
+    --t2: #5c5c58;
+    --t3: #9a9a94;
+    --bl: #185FA5;
+    --bld: #0C447C;
+    --blbg: #E6F1FB;
+    --bllt: #B5D4F4;
+    --pu: #534AB7;
+    --pubg: #EEEDFE;
+    --pud: #3C3489;
+    --bd: rgba(0,0,0,0.12);
+    --bdm: rgba(0,0,0,0.22);
+    --r: 8px;
+    --rl: 12px;
+    --fn: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg1: #1e1e1c;
+      --bg2: #2a2a28;
+      --bg3: #323230;
+      --t1: #f0efe9;
+      --t2: #a8a8a0;
+      --t3: #6a6a64;
+      --bd: rgba(255,255,255,0.1);
+      --bdm: rgba(255,255,255,0.2);
+      --blbg: #0c2a45;
+      --bllt: #185FA5;
+      --pubg: #1c1a3a;
+    }
+  }
+
+  body {
+    font-family: var(--fn);
+    background: var(--bg3);
+    color: var(--t1);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .page { max-width: 800px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 22px; font-weight: 500; color: var(--t1); margin-bottom: 4px; }
+  .page-header p { font-size: 14px; color: var(--t3); }
+
+  .conn-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 1rem; font-size: 13px; color: var(--t3);
+  }
+  .conn-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ccc; flex-shrink: 0; transition: background 0.3s;
+  }
+  .conn-dot.live { background: #1D9E75; }
+  .conn-dot.err  { background: #A32D2D; }
+  .conn-dot.loading { background: #F0A500; }
+
+  .card {
+    background: var(--bg1);
+    border: 0.5px solid var(--bd);
+    border-radius: var(--rl);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .slbl {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--t3); margin-bottom: 10px;
+  }
+
+  .tgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 6px; margin-bottom: 1.5rem;
+  }
+
+  .tc {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    border: 0.5px solid var(--bd); border-radius: var(--r);
+    cursor: pointer; background: var(--bg1);
+    transition: border-color .1s, background .1s; user-select: none;
+  }
+  .tc:hover { border-color: var(--bdm); background: var(--bg2); }
+  .tc.s { border-color: var(--bl); background: var(--blbg); }
+
+  .cbox {
+    width: 16px; height: 16px; border-radius: 3px;
+    border: 1.5px solid var(--bdm); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .1s, border-color .1s;
+  }
+  .tc.s .cbox { background: var(--bl); border-color: var(--bl); }
+  .chk { display: none; }
+  .tc.s .chk { display: block; }
+  .clbl { font-size: 13px; color: var(--t1); line-height: 1.3; }
+  .tc.s .clbl { color: var(--bld); font-weight: 500; }
+
+  .arow { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+
+  .ab {
+    flex: 1; min-width: 150px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px;
+    border: 0.5px solid var(--bd); border-radius: var(--r);
+    cursor: pointer; background: var(--bg1);
+    transition: border-color .1s, background .1s; user-select: none;
+  }
+  .ab:hover { border-color: var(--bdm); background: var(--bg2); }
+  .ab.s { border-color: var(--pu); background: var(--pubg); }
+
+  .av {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500; flex-shrink: 0;
+  }
+  .TO { background: #CECBF6; color: #3C3489; }
+  .CW { background: #9FE1CB; color: #085041; }
+  .ZR { background: #F5C4B3; color: #712B13; }
+  .ab.s .TO { background: #7F77DD; color: #EEEDFE; }
+  .ab.s .CW { background: #1D9E75; color: #E1F5EE; }
+  .ab.s .ZR { background: #D85A30; color: #FAECE7; }
+  .anm { font-size: 13px; color: var(--t1); }
+  .ab.s .anm { font-weight: 500; color: var(--pud); }
+
+  .ir { display: flex; gap: 8px; align-items: stretch; }
+
+  input[type=text] {
+    flex: 1; height: 40px; font-size: 14px; padding: 0 12px;
+    border: 0.5px solid var(--bdm); border-radius: var(--r);
+    background: var(--bg1); color: var(--t1);
+    outline: none; font-family: var(--fn);
+  }
+  input[type=text]:focus { box-shadow: 0 0 0 2px var(--bllt); border-color: transparent; }
+
+  .lbtn {
+    height: 40px; padding: 0 22px; font-size: 14px; font-weight: 500;
+    border-radius: var(--r); border: none; background: var(--bl); color: #fff;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: var(--fn);
+  }
+  .lbtn:hover { background: var(--bld); }
+  .lbtn:active { transform: scale(.98); }
+  .lbtn:disabled { opacity: .38; cursor: not-allowed; }
+
+  .vh { font-size: 12px; color: #A32D2D; margin-top: 8px; display: none; }
+
+  .statusbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 8px; min-height: 16px;
+  }
+  .stxt { font-size: 11px; color: var(--t3); }
+  .rbtn {
+    font-size: 11px; color: var(--bl); background: none;
+    border: none; cursor: pointer; font-family: var(--fn); padding: 0;
+  }
+  .rbtn:hover { color: var(--bld); }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin-bottom: 1rem;
+  }
+  .stat { background: var(--bg2); border-radius: var(--r); padding: 10px 14px; }
+  .slb { font-size: 11px; color: var(--t3); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .sv { font-size: 24px; font-weight: 500; color: var(--t1); }
+  .svc { color: #0F6E56; }
+  .svp { color: #854F0B; }
+  .svi { color: #A32D2D; }
+
+  .fils { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .pill {
+    padding: 5px 16px; font-size: 13px; border-radius: 99px;
+    border: 0.5px solid var(--bd); cursor: pointer;
+    background: transparent; color: var(--t2); font-family: var(--fn);
+    transition: background .1s;
+  }
+  .pill.a { background: var(--bg2); color: var(--t1); border-color: var(--bdm); font-weight: 500; }
+
+  .ents { display: flex; flex-direction: column; gap: 6px; }
+
+  .ent {
+    background: var(--bg1); border: 0.5px solid var(--bd);
+    border-radius: var(--r); padding: 10px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+    transition: border-color .1s;
+  }
+  .ent:hover { border-color: var(--bdm); }
+  .em { flex: 1; min-width: 0; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .ttype {
+    font-size: 11px; font-weight: 500;
+    color: var(--bld); background: var(--blbg);
+    border-radius: 4px; padding: 2px 8px;
+  }
+  .twho {
+    font-size: 11px; font-weight: 500;
+    border-radius: 4px; padding: 2px 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .wTO { background: #EEEDFE; color: #3C3489; }
+  .wCW { background: #E1F5EE; color: #085041; }
+  .wZR { background: #FAECE7; color: #712B13; }
+
+  .enotes { font-size: 13px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .etime { font-size: 11px; color: var(--t3); margin-top: 3px; }
+
+  .sbadge {
+    font-size: 11px; font-weight: 500; padding: 4px 12px;
+    border-radius: 99px; cursor: pointer; border: none;
+    white-space: nowrap; flex-shrink: 0; margin-top: 1px; font-family: var(--fn);
+  }
+  .stc { background: #E1F5EE; color: #0F6E56; }
+  .stp { background: #FAEEDA; color: #854F0B; }
+  .sti { background: #FCEBEB; color: #A32D2D; }
+
+  .dbtn {
+    font-size: 18px; color: var(--t3); cursor: pointer;
+    background: none; border: none; padding: 0 2px;
+    opacity: 0; transition: opacity .1s; line-height: 1; margin-top: 1px;
+  }
+  .ent:hover .dbtn { opacity: 1; }
+  .empty { text-align: center; padding: 3rem 0; color: var(--t3); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>Team request tracker</h1>
+    <p>Log incoming requests, assign them, and track completion status.</p>
+  </div>
+
+  <div class="conn-row">
+    <div class="conn-dot loading" id="connDot"></div>
+    <span id="connTxt">Connecting...</span>
+  </div>
+
+  <div class="card">
+    <div class="slbl">Request type — select one or more</div>
+    <div class="tgrid" id="tgrid"></div>
+
+    <div class="slbl">Assign to</div>
+    <div class="arow" id="arow"></div>
+
+    <div class="slbl">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px">(optional — add any specifics)</span></div>
+    <div class="ir">
+      <input type="text" id="ni" placeholder="e.g. Q3 pipeline report for Sarah..." autocomplete="off"/>
+      <button class="lbtn" id="lb" disabled>Log request</button>
+    </div>
+    <div class="vh" id="vh">Select at least one request type to log.</div>
+    <div class="statusbar">
+      <span class="stxt" id="stxt"></span>
+      <button class="rbtn" onclick="loadData()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="fils">
+    <button class="pill a" onclick="setF('all',this)">All</button>
+    <button class="pill" onclick="setF('Complete',this)">Complete</button>
+    <button class="pill" onclick="setF('In process',this)">In process</button>
+    <button class="pill" onclick="setF('Incomplete',this)">Incomplete</button>
+  </div>
+
+  <div class="ents" id="ents"></div>
+
+</div>
+
+<script>
+  // ============================================================
+  // PASTE YOUR JSONBIN DETAILS HERE — only 2 values needed
+  // ============================================================
+  const BIN_ID  = 'PASTE_YOUR_BIN_ID_HERE';   // e.g. 64f3c2a1e3a795c5baf123ab
+  const API_KEY = 'PASTE_YOUR_API_KEY_HERE';   // e.g. $2a$10$abc123...
+  // ============================================================
+
+  const API_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+  const HEADERS = {
+    'Content-Type': 'application/json',
+    'X-Master-Key': API_KEY,
+    'X-Bin-Versioning': 'false'
+  };
+
+  const TYPES = [
+    'Report requests', 'Data updates', 'Seismic document uploads',
+    'Seismic page builds', 'Gong call uploads', 'Gong profile builds',
+    'Seismic profile builds', 'LinkedIn Sales Navigator profile builds'
+  ];
+  const TEAM = [
+    { id: 'TO', name: "Tiffanie O'Brien", initials: 'TO' },
+    { id: 'CW', name: 'Cameron Wood',     initials: 'CW' },
+    { id: 'ZR', name: 'Zach Rothenberger',initials: 'ZR' }
+  ];
+  const SC  = { 'Complete': 'In process', 'In process': 'Incomplete', 'Incomplete': 'Complete' };
+  const SCL = { 'Complete': 'stc', 'In process': 'stp', 'Incomplete': 'sti' };
+
+  let sel = new Set(), asgn = null, filt = 'all', entries = [], nextId = 1, saving = false;
+
+  function fmt(ts) {
+    const d = Math.floor((Date.now() - ts) / 60000);
+    if (d < 1)    return 'just now';
+    if (d < 60)   return d + 'm ago';
+    if (d < 1440) return Math.floor(d / 60) + 'h ago';
+    return Math.floor(d / 1440) + 'd ago';
+  }
+
+  function setConn(state, msg) {
+    const dot = document.getElementById('connDot');
+    dot.className = 'conn-dot' + (state === 'live' ? ' live' : state === 'err' ? ' err' : ' loading');
+    document.getElementById('connTxt').textContent = msg;
+  }
+
+  function setStatus(msg) {
+    const el = document.getElementById('stxt');
+    if (el) el.textContent = msg;
+  }
+
+  function isConfigured() {
+    return !BIN_ID.includes('PASTE') && !API_KEY.includes('PASTE');
+  }
+
+  async function loadData() {
+    if (!isConfigured()) {
+      setConn('err', 'Not configured — paste your BIN_ID and API_KEY into the file');
+      return;
+    }
+    setConn('loading', 'Loading...');
+    try {
+      const res = await fetch(API_URL + '/latest', { headers: { 'X-Master-Key': API_KEY } });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      entries = data.record.entries || [];
+      nextId  = data.record.nextId  || (entries.length + 1);
+      setConn('live', 'Connected — shared across all users');
+      render();
+    } catch (e) {
+      setConn('err', 'Could not load data: ' + e.message);
+    }
+  }
+
+  async function saveData() {
+    if (!isConfigured() || saving) return;
+    saving = true;
+    setStatus('Saving...');
+    try {
+      const res = await fetch(API_URL, {
+        method: 'PUT',
+        headers: HEADERS,
+        body: JSON.stringify({ entries, nextId })
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setStatus('Saved ✓');
+      setTimeout(() => setStatus(''), 2500);
+    } catch (e) {
+      setStatus('Save failed: ' + e.message);
+    } finally {
+      saving = false;
+    }
+  }
+
+  function buildTypes() {
+    document.getElementById('tgrid').innerHTML = TYPES.map(t => `
+      <div class="tc" id="tc-${t.replace(/[\s']/g,'_')}" onclick="toggleT('${t.replace(/'/g,"\\'")}')">
+        <div class="cbox">
+          <svg class="chk" width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="clbl">${t}</span>
+      </div>`).join('');
+  }
+
+  function buildAssignees() {
+    document.getElementById('arow').innerHTML = TEAM.map(p => `
+      <div class="ab" id="ab-${p.id}" onclick="toggleA('${p.id}')">
+        <div class="av ${p.id}">${p.initials}</div>
+        <span class="anm">${p.name}</span>
+      </div>`).join('');
+  }
+
+  function toggleT(t) {
+    if (sel.has(t)) sel.delete(t); else sel.add(t);
+    document.getElementById('tc-' + t.replace(/[\s']/g,'_')).classList.toggle('s', sel.has(t));
+    document.getElementById('lb').disabled = sel.size === 0;
+    document.getElementById('vh').style.display = 'none';
+  }
+
+  function toggleA(id) {
+    asgn = asgn === id ? null : id;
+    TEAM.forEach(p => document.getElementById('ab-' + p.id).classList.toggle('s', asgn === p.id));
+  }
+
+  async function logReq() {
+    if (sel.size === 0) { document.getElementById('vh').style.display = 'block'; return; }
+    const notes = document.getElementById('ni').value.trim();
+    entries.unshift({ id: nextId++, types: [...sel], assignee: asgn || null, notes, status: 'Incomplete', ts: Date.now() });
+    sel.clear(); asgn = null;
+    document.querySelectorAll('.tc').forEach(c => c.classList.remove('s'));
+    document.querySelectorAll('.ab').forEach(b => b.classList.remove('s'));
+    document.getElementById('ni').value = '';
+    document.getElementById('lb').disabled = true;
+    render();
+    await saveData();
+  }
+
+  async function cycleS(id) {
+    const e = entries.find(e => e.id === id);
+    if (!e) return;
+    e.status = SC[e.status];
+    render();
+    await saveData();
+  }
+
+  async function delE(id) {
+    entries = entries.filter(e => e.id !== id);
+    render();
+    await saveData();
+  }
+
+  function setF(f, el) {
+    filt = f;
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('a'));
+    el.classList.add('a');
+    render();
+  }
+
+  function render() {
+    const tot  = entries.length;
+    const comp = entries.filter(e => e.status === 'Complete').length;
+    const inp  = entries.filter(e => e.status === 'In process').length;
+    const inc  = entries.filter(e => e.status === 'Incomplete').length;
+
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="slb">Total</div><div class="sv">${tot}</div></div>
+      <div class="stat"><div class="slb">Complete</div><div class="sv svc">${comp}</div></div>
+      <div class="stat"><div class="slb">In process</div><div class="sv svp">${inp}</div></div>
+      <div class="stat"><div class="slb">Incomplete</div><div class="sv svi">${inc}</div></div>`;
+
+    const vis = filt === 'all' ? entries : entries.filter(e => e.status === filt);
+    const el  = document.getElementById('ents');
+
+    if (!vis.length) { el.innerHTML = `<div class="empty">No requests logged yet</div>`; return; }
+
+    el.innerHTML = vis.map(e => {
+      const p = e.assignee ? TEAM.find(t => t.id === e.assignee) : null;
+      return `<div class="ent">
+        <div class="em">
+          <div class="tags">
+            ${e.types.map(t => `<span class="ttype">${t}</span>`).join('')}
+            ${p ? `<span class="twho w${p.id}">
+              <span class="av ${p.id}" style="width:14px;height:14px;font-size:9px">${p.initials}</span>
+              ${p.name}
+            </span>` : ''}
+          </div>
+          ${e.notes ? `<div class="enotes">${e.notes}</div>` : ''}
+          <div class="etime">${fmt(e.ts)}</div>
+        </div>
+        <button class="sbadge ${SCL[e.status]}" onclick="cycleS(${e.id})">${e.status}</button>
+        <button class="dbtn" onclick="delE(${e.id})">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('ni').addEventListener('keydown', e => { if (e.key === 'Enter') logReq(); });
+  document.getElementById('lb').addEventListener('click', logReq);
+
+  buildTypes();
+  buildAssignees();
+  render();
+  loadData();
+</script>
+</body>
+</html>
